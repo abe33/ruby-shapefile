@@ -15,6 +15,7 @@ GEM
       git (>= 1.2.5)
       rake
     rake (0.8.7)
+    rcov (0.9.9)
     rcov (0.9.9-java)
     rspec (2.5.0)
       rspec-core (~> 2.5.0)
@@ -27,6 +28,7 @@ GEM
 
 PLATFORMS
   java
+  ruby
 
 DEPENDENCIES
   bundler (~> 1.0.0)

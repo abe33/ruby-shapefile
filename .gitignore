@@ -1,5 +1,4 @@
 .redcar/
-*.gemspec
 
 # rcov generated
 coverage
@@ -16,4 +15,9 @@ doc
 
 # jeweler generated
 pkg
+
+# sublime text files
+*.sublime-project
+*.sublime-workspace
+
 
