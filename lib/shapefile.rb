@@ -18,27 +18,31 @@ class Reader
   def shapes
     @shapes||=read_shapes
   end
-  
-  def initialize(basename)
+
+   def initialize(shp, dbf)
     @log = Logger.new(STDOUT)
     @log.level = Logger::WARN
 
-    raise "no base file name specified" if basename.nil? or basename.empty?
+    # raise "no base file name specified" if basename.nil? or basename.empty?
 
-    if File.extname(basename)=="shp"
-      @shp_filename = basename
-    else
-      @shp_filename = "#{basename}.shp"
-      @dbf_filename = File.exists?("#{basename}.dbf") ? "#{basename}.dbf" : nil
+    # if File.extname(basename)=="shp"
+    #   @shp_filename = basename
+    # else
+    #   @shp_filename = "#{basename}.shp"
+    #   @dbf_filename = File.exists?("#{basename}.dbf") ? "#{basename}.dbf" : nil
 
-      @log.warn("couldn't find #{basename}.dbf - won't read any attributes") if not has_attributes?
-    end
+    #   @log.warn("couldn't find #{basename}.dbf - won't read any attributes") if not has_attributes?
+    # end
+
+    @shp_filename = shp
+    @dbf_filename = dbf
 
     raise "shp file #{@shp_filename} does not exist" if not File.exists?(@shp_filename)
+    raise "dbf file #{@dbf_filename} does not exist" if not File.exists?(@dbf_filename)
   end
 
   private
-  
+
   def read_header
     f = File.open(@shp_filename, "rb")
     bytes = f.read(100)
@@ -47,24 +51,24 @@ class Reader
     header.shape_type = Shapefile::shape_type_for_id(header.shape_type)
     header
   end
-  
+
   def read_shapes
     shapes = []
-    
+
     File.open(@shp_filename, "rb") do |f|
       f.seek(100) #seek past header
 
       bytes_remaining = (header.file_length*2)-100
       while bytes_remaining>0
-        shape, bytes_read = read_record(f)        
+        shape, bytes_read = read_record(f)
         shapes.push shape
         bytes_remaining -= bytes_read
       end
     end
-    
+
     if has_attributes?
       attr_table = DBF::Table.new(@dbf_filename)
-      
+
       shapes.each_with_index do |shape, i|
         attrs = {}
         record = attr_table.record(i)
@@ -72,22 +76,22 @@ class Reader
           attrs[key] = value
         end
         shape.attributes = attrs
-      end      
+      end
     end
     shapes
   end
-  
+
   def read_record(file)
     rec_num, content_length = file.read(8).unpack("NN")
     content = file.read(content_length*2)
 
     shape_type = Shapefile::shape_type_for_id(content.unpack("L").first)
-  
+
     ret = nil
     unless shape_type.nil?
       ret = Shapefile::convert(shape_type, content)
     end
-    
+
     [ret, (content_length*2)+8]
   end
 
@@ -95,7 +99,7 @@ end
 
 private
 
-SHAPE_TYPE_MAP = { 
+SHAPE_TYPE_MAP = {
   0 => :null_shape,
   1 => :point,
   3 => :poly_line,
@@ -107,12 +111,12 @@ SHAPE_TYPE_MAP = {
   18 => :multi_point_z,
   21 => :point_m,
   23 => :poly_line_m,
-  25 => :polygon_m, 
+  25 => :polygon_m,
   28 => :multi_point_m,
   31 => :multi_patch
 }
 
-def self.shape_type_for_id(shape_type_id)  
+def self.shape_type_for_id(shape_type_id)
   SHAPE_TYPE_MAP[shape_type_id]
 end
 
@@ -133,11 +137,11 @@ class MultiPoint < Struct.new(:bounding_box, :points, :attributes)
 end
 
 class PolyLine < Struct.new(:bounding_box, :parts, :points, :attributes)
-  @@TYPE = :poly_line  
+  @@TYPE = :poly_line
 end
 
 class Polygon < Struct.new(:bounding_box, :parts, :points, :attributes)
-  @@TYPE = :polygon  
+  @@TYPE = :polygon
 end
 
 end
